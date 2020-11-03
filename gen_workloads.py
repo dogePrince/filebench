@@ -1,41 +1,70 @@
+from jinja2 import Template
 import os
-import shutil
-import subprocess
+import copy
 
-wml_dir = '/root/filebench/final_workloads'
-result_dir = '/root/workloads'
-tmp1 = '/root/file_tmp'
-tmp2 = '/pmfs/file_tmp'
-src = os.path.join(result_dir, 'raw')
-log = os.path.join(result_dir, 'log.txt')
+ssd_path = '/root/file_tmp'
+pm_path = '/pmfs/file_tmp'
 
-if os.path.exists(log):
-    os.remove(log)
-with open(log, 'w') as log_file:
-    for wml in os.listdir(wml_dir):
-        wml_name = wml.split('.')[0]
+common_config = {
+    'workspace': {'ssd': ssd_path, 'pm': pm_path},
+    'nthreads': {1: 1},
+    'sync': {'async': '', 'sync': ',dsync'}
+}
 
-        des = os.path.join(result_dir, wml_name)
+configs = {
+    'copyfiles': {
+        **common_config
+    },
+    'fileserver': {
+        **common_config,
+        'runtime': {'10s': 10}
+    },
+    'mongo': {
+        **common_config
+    },
+    'netsfs': {
+        **common_config,
+        'runtime': {'10s': 10}
+    },
+    'webserver': {
+        **common_config,
+        'runtime': {'10s': 10}
+    }
+}
 
-        if os.path.exists(tmp1):
-            shutil.rmtree(tmp1)
-        if os.path.exists(tmp2):
-            shutil.rmtree(tmp2)
+temp_dir = 'workloads_templates'
+res_dir = 'custom_workloads'
+if not os.path.exists(res_dir):
+    os.mkdir(res_dir)
 
-        if os.path.exists(src):
-            shutil.rmtree(src)
-        os.mkdir(src)
+for workload, param in configs.items():
+    with open(os.path.join(temp_dir, workload)) as f:
+        contents = f.read()
+        t = Template(contents, variable_start_string='{^', variable_end_string='^}')
 
-        cur = '[workloads] ' + wml_name
-        print(cur)
-        log_file.write(cur + '\n')
-        log_file.flush()
-        p = subprocess.Popen(['filebench', '-f', os.path.join(wml_dir, wml)], stdout=log_file, stderr=log_file)
-        p.wait()
-        log_file.flush()
+        conditions = []
+        param_list = list(param.items())
+        param_list.sort(key=lambda x: x[0])
+        for param_name, options in param_list:
+            if len(conditions) == 0:
+                for opt_key, opt_value in options.items():
+                    conditions.append({'postfix': '_' + str(opt_key), 'options': {param_name: opt_value}})
+                # print(conditions)
+            else:
+                conditions_ex = []
+                for condition in conditions:
+                    for opt_key, opt_value in options.items():
+                        condition_new = {}
+                        condition_new['postfix'] = condition['postfix'] + '_' + str(opt_key)
+                        condition_new['options'] = copy.deepcopy(condition['options'])
+                        condition_new['options'][param_name] = opt_value
+                        conditions_ex.append(condition_new)
+                #     print(condition_new, conditions_ex)
+                # print(conditions_ex)
+                conditions = conditions_ex
 
-        if len(os.listdir(src)) != 0:
-            if os.path.exists(des):
-                shutil.rmtree(des)
-            shutil.copytree(src, des)
+        for condition in conditions:
+            with open(os.path.join(res_dir, workload + condition['postfix'] + '.f'), 'w') as file_out:
+                file_out.write(t.render(**condition['options']))
 
+        # print(t.render(workspace='/root/fileserver', nthreads=1, sync=''))

@@ -6,7 +6,7 @@ flowop_regex = re.compile(r'\s*flowop \w+ name=([\w]+)')
 spliter = re.compile(r'(?<!-)\s+(?!-)')
 result_regex = re.compile(r'^.+\s+\d+ops\s+\d+ops/s')
 
-wml_dir = '/root/filebench/final_workloads'
+wml_dir = '/root/filebench/custom_workloads'
 src = '/root/workloads/log.txt'
 res_dir = '/root/workloads/results'
 
