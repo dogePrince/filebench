@@ -6,16 +6,16 @@ ssd_path = '/root/file_tmp'
 pm_path = '/pmfs/file_tmp'
 
 common_config = {
-    'workspace': {'ssd': ssd_path, 'pm': pm_path},
+    'workspace': {'pm': pm_path},
     'nthreads': {1: 1},
-    'sync': {'async': '', 'sync': ',dsync'}
+    'sync': {'sync': ',dsync'}
 }
 
 configs = {
     'copyfiles': {
         **common_config,
         'runtime': {'2s': 2},
-        'nfiles': {'50kf': 50000}
+        'nfiles': {'20kf': 20000}
     },
     'fileserver': {
         **common_config,
@@ -25,12 +25,12 @@ configs = {
     'mongo': {
         **common_config,
         'runtime': {'2s': 2},
-        'nfiles': {'50kf': 50000}
+        'nfiles': {'20kf': 20000}
     },
     'netsfs': {
         **common_config,
         'runtime': {'10s': 10},
-        'nfiles': {'100kf': 100000}
+        'nfiles': {'10kf': 10000}
     },
     'webserver': {
         **common_config,
@@ -40,7 +40,7 @@ configs = {
 }
 
 temp_dir = 'workloads_templates'
-res_dir = 'custom_workloads'
+res_dir = 'special_workloads'
 if not os.path.exists(res_dir):
     os.mkdir(res_dir)
 
@@ -71,7 +71,8 @@ for workload, param in configs.items():
                 conditions = conditions_ex
 
         for condition in conditions:
-            with open(os.path.join(res_dir, workload + condition['postfix'] + '.f'), 'w') as file_out:
+            # with open(os.path.join(res_dir, workload + condition['postfix'] + '.f'), 'w') as file_out:
+            with open(os.path.join(res_dir, workload + '.f'), 'w') as file_out:
                 file_out.write(t.render(**condition['options']))
 
         # print(t.render(workspace='/root/fileserver', nthreads=1, sync=''))

@@ -46,8 +46,27 @@
 #include "fsplug.h"
 
 #ifdef HAVE_AIO
+
 #include <aio.h>
+
 #endif /* HAVE_AIO */
+
+char* output[2000];
+char* out_path[1000];
+
+
+typedef struct HashMap {
+    char *arr[10000];
+} HashMap;
+HashMap fdMap;
+
+void put(int key, char *value) {
+    fdMap.arr[key] = value;
+}
+
+char *get(int key) {
+    return fdMap.arr[key];
+}
 
 /*
  * These routines implement local file access. They are placed into a
@@ -57,72 +76,99 @@
  */
 
 static int fb_lfs_freemem(fb_fdesc_t *fd, off64_t size);
+
 static int fb_lfs_open(fb_fdesc_t *, char *, int, int);
+
 static int fb_lfs_pread(fb_fdesc_t *, caddr_t, fbint_t, off64_t);
+
 static int fb_lfs_read(fb_fdesc_t *, caddr_t, fbint_t);
+
 static int fb_lfs_pwrite(fb_fdesc_t *, caddr_t, fbint_t, off64_t);
+
 static int fb_lfs_write(fb_fdesc_t *, caddr_t, fbint_t);
+
 static int fb_lfs_lseek(fb_fdesc_t *, off64_t, int);
+
 static int fb_lfs_truncate(fb_fdesc_t *, off64_t);
+
 static int fb_lfs_rename(const char *, const char *);
+
 static int fb_lfs_close(fb_fdesc_t *);
+
 static int fb_lfs_link(const char *, const char *);
+
 static int fb_lfs_symlink(const char *, const char *);
+
 static int fb_lfs_unlink(char *);
+
 static ssize_t fb_lfs_readlink(const char *, char *, size_t);
+
 static int fb_lfs_mkdir(char *, int);
+
 static int fb_lfs_rmdir(char *);
+
 static DIR *fb_lfs_opendir(char *);
+
 static struct dirent *fb_lfs_readdir(DIR *);
+
 static int fb_lfs_closedir(DIR *);
+
 static int fb_lfs_fsync(fb_fdesc_t *);
+
 static int fb_lfs_stat(char *, struct stat64 *);
+
 static int fb_lfs_fstat(fb_fdesc_t *, struct stat64 *);
+
 static int fb_lfs_access(const char *, int);
+
 static void fb_lfs_recur_rm(char *);
 
+void write_workloads();
+
 static fsplug_func_t fb_lfs_funcs =
-{
-	"locfs",
-	fb_lfs_freemem,		/* flush page cache */
-	fb_lfs_open,		/* open */
-	fb_lfs_pread,		/* pread */
-	fb_lfs_read,		/* read */
-	fb_lfs_pwrite,		/* pwrite */
-	fb_lfs_write,		/* write */
-	fb_lfs_lseek,		/* lseek */
-	fb_lfs_truncate,	/* ftruncate */
-	fb_lfs_rename,		/* rename */
-	fb_lfs_close,		/* close */
-	fb_lfs_link,		/* link */
-	fb_lfs_symlink,		/* symlink */
-	fb_lfs_unlink,		/* unlink */
-	fb_lfs_readlink,	/* readlink */
-	fb_lfs_mkdir,		/* mkdir */
-	fb_lfs_rmdir,		/* rmdir */
-	fb_lfs_opendir,		/* opendir */
-	fb_lfs_readdir,		/* readdir */
-	fb_lfs_closedir,	/* closedir */
-	fb_lfs_fsync,		/* fsync */
-	fb_lfs_stat,		/* stat */
-	fb_lfs_fstat,		/* fstat */
-	fb_lfs_access,		/* access */
-	fb_lfs_recur_rm		/* recursive rm */
-};
+        {
+                "locfs",
+                fb_lfs_freemem,        /* flush page cache */
+                fb_lfs_open,        /* open */
+                fb_lfs_pread,        /* pread */
+                fb_lfs_read,        /* read */
+                fb_lfs_pwrite,        /* pwrite */
+                fb_lfs_write,        /* write */
+                fb_lfs_lseek,        /* lseek */
+                fb_lfs_truncate,    /* ftruncate */
+                fb_lfs_rename,        /* rename */
+                fb_lfs_close,        /* close */
+                fb_lfs_link,        /* link */
+                fb_lfs_symlink,        /* symlink */
+                fb_lfs_unlink,        /* unlink */
+                fb_lfs_readlink,    /* readlink */
+                fb_lfs_mkdir,        /* mkdir */
+                fb_lfs_rmdir,        /* rmdir */
+                fb_lfs_opendir,        /* opendir */
+                fb_lfs_readdir,        /* readdir */
+                fb_lfs_closedir,    /* closedir */
+                fb_lfs_fsync,        /* fsync */
+                fb_lfs_stat,        /* stat */
+                fb_lfs_fstat,        /* fstat */
+                fb_lfs_access,        /* access */
+                fb_lfs_recur_rm        /* recursive rm */
+        };
 
 #ifdef HAVE_AIO
+
 /*
  * Local file system asynchronous IO flowops are in this module, as
  * they have a number of local file system specific features.
  */
 static int fb_lfsflow_aiowrite(threadflow_t *threadflow, flowop_t *flowop);
+
 static int fb_lfsflow_aiowait(threadflow_t *threadflow, flowop_t *flowop);
 
 static flowop_proto_t fb_lfsflow_funcs[] = {
-	{FLOW_TYPE_AIO, FLOW_ATTR_WRITE, "aiowrite", flowop_init_generic,
-	fb_lfsflow_aiowrite, flowop_destruct_generic},
-	{FLOW_TYPE_AIO, 0, "aiowait", flowop_init_generic,
-	fb_lfsflow_aiowait, flowop_destruct_generic}
+        {FLOW_TYPE_AIO, FLOW_ATTR_WRITE, "aiowrite", flowop_init_generic,
+                fb_lfsflow_aiowrite, flowop_destruct_generic},
+        {FLOW_TYPE_AIO, 0,               "aiowait",  flowop_init_generic,
+                fb_lfsflow_aiowait,  flowop_destruct_generic}
 };
 
 #endif /* HAVE_AIO */
@@ -133,9 +179,8 @@ static flowop_proto_t fb_lfsflow_funcs[] = {
  * every created worker process.
  */
 void
-fb_lfs_funcvecinit(void)
-{
-	fs_functions_vec = &fb_lfs_funcs;
+fb_lfs_funcvecinit(void) {
+    fs_functions_vec = &fb_lfs_funcs;
 }
 
 /*
@@ -143,12 +188,11 @@ fb_lfs_funcvecinit(void)
  * called only once in the master process.
  */
 void
-fb_lfs_newflowops(void)
-{
+fb_lfs_newflowops(void) {
 #ifdef HAVE_AIO
-	int nops;
-	nops = sizeof (fb_lfsflow_funcs) / sizeof (flowop_proto_t);
-	flowop_add_from_proto(fb_lfsflow_funcs, nops);
+    int nops;
+    nops = sizeof(fb_lfsflow_funcs) / sizeof(flowop_proto_t);
+    flowop_add_from_proto(fb_lfsflow_funcs, nops);
 #endif /* HAVE_AIO */
 }
 
@@ -159,40 +203,46 @@ fb_lfs_newflowops(void)
  * is zero, or -1 times the number of times msync() failed.
  */
 static int
-fb_lfs_freemem(fb_fdesc_t *fd, off64_t size)
-{
-	off64_t left;
-	int ret = 0;
+fb_lfs_freemem(fb_fdesc_t *fd, off64_t size) {
+    sprintf(output, "[OP] fb_lfs_freemem(path=%s,fd=%d,size=%lld)\n", get(fd->fd_num), fd->fd_num, size);
+    write_workloads();
 
-	for (left = size; left > 0; left -= MMAP_SIZE) {
-		off64_t thismapsize;
-		caddr_t addr;
+    off64_t left;
+    int ret = 0;
 
-		thismapsize = MIN(MMAP_SIZE, left);
-		addr = mmap64(0, thismapsize, PROT_READ|PROT_WRITE,
-		    MAP_SHARED, fd->fd_num, size - left);
-		ret += msync(addr, thismapsize, MS_INVALIDATE);
-		(void) munmap(addr, thismapsize);
-	}
-	return (ret);
+    for (left = size; left > 0; left -= MMAP_SIZE) {
+        off64_t thismapsize;
+        caddr_t addr;
+
+        thismapsize = MIN(MMAP_SIZE, left);
+        addr = mmap64(0, thismapsize, PROT_READ | PROT_WRITE,
+                      MAP_SHARED, fd->fd_num, size - left);
+        ret += msync(addr, thismapsize, MS_INVALIDATE);
+        (void) munmap(addr, thismapsize);
+    }
+    return (ret);
 }
 
 /*
  * Does a posix pread. Returns what the pread() returns.
  */
 static int
-fb_lfs_pread(fb_fdesc_t *fd, caddr_t iobuf, fbint_t iosize, off64_t fileoffset)
-{
-	return (pread64(fd->fd_num, iobuf, iosize, fileoffset));
+fb_lfs_pread(fb_fdesc_t *fd, caddr_t iobuf, fbint_t iosize, off64_t fileoffset) {
+    sprintf(output, "[OP] fb_lfs_pread(path=%s,fd=%d,iosize=%d,offset=%lld)\n", get(fd->fd_num), fd->fd_num, iosize, fileoffset);
+    write_workloads();
+
+    return (pread64(fd->fd_num, iobuf, iosize, fileoffset));
 }
 
 /*
  * Does a posix read. Returns what the read() returns.
  */
 static int
-fb_lfs_read(fb_fdesc_t *fd, caddr_t iobuf, fbint_t iosize)
-{
-	return (read(fd->fd_num, iobuf, iosize));
+fb_lfs_read(fb_fdesc_t *fd, caddr_t iobuf, fbint_t iosize) {
+    sprintf(output, "[OP] fb_lfs_read(path=%s,fd=%d,iosize=%d)\n", get(fd->fd_num), fd->fd_num, iosize);
+    write_workloads();
+
+    return (read(fd->fd_num, iobuf, iosize));
 }
 
 #ifdef HAVE_AIO
@@ -214,26 +264,25 @@ fb_lfs_read(fb_fdesc_t *fd, caddr_t iobuf, fbint_t iosize)
  * threadflow aio list. Returns a pointer to the element.
  */
 static aiolist_t *
-aio_allocate(flowop_t *flowop)
-{
-	aiolist_t *aiolist;
+aio_allocate(flowop_t *flowop) {
+    aiolist_t *aiolist;
 
-	if ((aiolist = malloc(sizeof (aiolist_t))) == NULL) {
-		filebench_log(LOG_ERROR, "malloc aiolist failed");
-		filebench_shutdown(1);
-	}
+    if ((aiolist = malloc(sizeof(aiolist_t))) == NULL) {
+        filebench_log(LOG_ERROR, "malloc aiolist failed");
+        filebench_shutdown(1);
+    }
 
-	bzero(aiolist, sizeof(*aiolist));
+    bzero(aiolist, sizeof(*aiolist));
 
-	/* Add to list */
-	if (flowop->fo_thread->tf_aiolist == NULL) {
-		flowop->fo_thread->tf_aiolist = aiolist;
-		aiolist->al_next = NULL;
-	} else {
-		aiolist->al_next = flowop->fo_thread->tf_aiolist;
-		flowop->fo_thread->tf_aiolist = aiolist;
-	}
-	return (aiolist);
+    /* Add to list */
+    if (flowop->fo_thread->tf_aiolist == NULL) {
+        flowop->fo_thread->tf_aiolist = aiolist;
+        aiolist->al_next = NULL;
+    } else {
+        aiolist->al_next = flowop->fo_thread->tf_aiolist;
+        flowop->fo_thread->tf_aiolist = aiolist;
+    }
+    return (aiolist);
 }
 
 /*
@@ -243,36 +292,35 @@ aio_allocate(flowop_t *flowop)
  * list and returns FILEBENCH_OK.
  */
 static int
-aio_deallocate(flowop_t *flowop, struct aiocb64 *aiocb)
-{
-	aiolist_t *aiolist = flowop->fo_thread->tf_aiolist;
-	aiolist_t *previous = NULL;
-	aiolist_t *match = NULL;
+aio_deallocate(flowop_t *flowop, struct aiocb64 *aiocb) {
+    aiolist_t *aiolist = flowop->fo_thread->tf_aiolist;
+    aiolist_t *previous = NULL;
+    aiolist_t *match = NULL;
 
-	if (aiocb == NULL) {
-		filebench_log(LOG_ERROR, "null aiocb deallocate");
-		return (FILEBENCH_OK);
-	}
+    if (aiocb == NULL) {
+        filebench_log(LOG_ERROR, "null aiocb deallocate");
+        return (FILEBENCH_OK);
+    }
 
-	while (aiolist) {
-		if (aiocb == &(aiolist->al_aiocb)) {
-			match = aiolist;
-			break;
-		}
-		previous = aiolist;
-		aiolist = aiolist->al_next;
-	}
+    while (aiolist) {
+        if (aiocb == &(aiolist->al_aiocb)) {
+            match = aiolist;
+            break;
+        }
+        previous = aiolist;
+        aiolist = aiolist->al_next;
+    }
 
-	if (match == NULL)
-		return (FILEBENCH_ERROR);
+    if (match == NULL)
+        return (FILEBENCH_ERROR);
 
-	/* Remove from the list */
-	if (previous)
-		previous->al_next = match->al_next;
-	else
-		flowop->fo_thread->tf_aiolist = match->al_next;
+    /* Remove from the list */
+    if (previous)
+        previous->al_next = match->al_next;
+    else
+        flowop->fo_thread->tf_aiolist = match->al_next;
 
-	return (FILEBENCH_OK);
+    return (FILEBENCH_OK);
 }
 
 /*
@@ -287,66 +335,64 @@ aio_deallocate(flowop_t *flowop, struct aiocb64 *aiocb)
  * encountered error.
  */
 static int
-fb_lfsflow_aiowrite(threadflow_t *threadflow, flowop_t *flowop)
-{
-	caddr_t iobuf;
-	fbint_t wss;
-	fbint_t iosize;
-	fb_fdesc_t *fdesc;
-	int ret;
+fb_lfsflow_aiowrite(threadflow_t *threadflow, flowop_t *flowop) {
+    caddr_t iobuf;
+    fbint_t wss;
+    fbint_t iosize;
+    fb_fdesc_t *fdesc;
+    int ret;
 
-	iosize = avd_get_int(flowop->fo_iosize);
+    iosize = avd_get_int(flowop->fo_iosize);
 
-	if ((ret = flowoplib_iosetup(threadflow, flowop, &wss, &iobuf,
-	    &fdesc, iosize)) != FILEBENCH_OK)
-		return (ret);
+    if ((ret = flowoplib_iosetup(threadflow, flowop, &wss, &iobuf,
+                                 &fdesc, iosize)) != FILEBENCH_OK)
+        return (ret);
 
-	if (avd_get_bool(flowop->fo_random)) {
-		uint64_t fileoffset;
-		struct aiocb64 *aiocb;
-		aiolist_t *aiolist;
+    if (avd_get_bool(flowop->fo_random)) {
+        uint64_t fileoffset;
+        struct aiocb64 *aiocb;
+        aiolist_t *aiolist;
 
-		if (wss < iosize) {
-			filebench_log(LOG_ERROR,
-			    "file size smaller than IO size for thread %s",
-			    flowop->fo_name);
-			return (FILEBENCH_ERROR);
-		}
+        if (wss < iosize) {
+            filebench_log(LOG_ERROR,
+                          "file size smaller than IO size for thread %s",
+                          flowop->fo_name);
+            return (FILEBENCH_ERROR);
+        }
 
-		fb_random64(&fileoffset, wss, iosize, NULL);
+        fb_random64(&fileoffset, wss, iosize, NULL);
 
-		aiolist = aio_allocate(flowop);
-		aiolist->al_type = AL_WRITE;
-		aiocb = &aiolist->al_aiocb;
+        aiolist = aio_allocate(flowop);
+        aiolist->al_type = AL_WRITE;
+        aiocb = &aiolist->al_aiocb;
 
-		aiocb->aio_fildes = fdesc->fd_num;
-		aiocb->aio_buf = iobuf;
-		aiocb->aio_nbytes = (size_t)iosize;
-		aiocb->aio_offset = (off64_t)fileoffset;
-		aiocb->aio_reqprio = 0;
+        aiocb->aio_fildes = fdesc->fd_num;
+        aiocb->aio_buf = iobuf;
+        aiocb->aio_nbytes = (size_t) iosize;
+        aiocb->aio_offset = (off64_t) fileoffset;
+        aiocb->aio_reqprio = 0;
 
-		filebench_log(LOG_DEBUG_IMPL,
-		    "aio fd=%d, bytes=%llu, offset=%llu",
-		    fdesc->fd_num, (u_longlong_t)iosize,
-		    (u_longlong_t)fileoffset);
+        filebench_log(LOG_DEBUG_IMPL,
+                      "aio fd=%d, bytes=%llu, offset=%llu",
+                      fdesc->fd_num, (u_longlong_t) iosize,
+                      (u_longlong_t) fileoffset);
 
-		flowop_beginop(threadflow, flowop);
-		if (aio_write64(aiocb) < 0) {
-			filebench_log(LOG_ERROR, "aiowrite failed: %s",
-			    strerror(errno));
-			filebench_shutdown(1);
-		}
-		flowop_endop(threadflow, flowop, iosize);
-	} else {
-		return (FILEBENCH_ERROR);
-	}
+        flowop_beginop(threadflow, flowop);
+        if (aio_write64(aiocb) < 0) {
+            filebench_log(LOG_ERROR, "aiowrite failed: %s",
+                          strerror(errno));
+            filebench_shutdown(1);
+        }
+        flowop_endop(threadflow, flowop, iosize);
+    } else {
+        return (FILEBENCH_ERROR);
+    }
 
-	return (FILEBENCH_OK);
+    return (FILEBENCH_OK);
 }
 
 
-
-#define	MAXREAP 4096
+#define    MAXREAP 4096
 
 /*
  * Emulate posix aiowait(). Waits for the completion of half the
@@ -357,118 +403,117 @@ fb_lfsflow_aiowrite(threadflow_t *threadflow, flowop_t *flowop)
  * IO operations are deleted from the thread's aiolist.
  */
 static int
-fb_lfsflow_aiowait(threadflow_t *threadflow, flowop_t *flowop)
-{
-	struct aiocb64 **worklist;
-	aiolist_t *aio = flowop->fo_thread->tf_aiolist;
-	int uncompleted = 0;
+fb_lfsflow_aiowait(threadflow_t *threadflow, flowop_t *flowop) {
+    struct aiocb64 **worklist;
+    aiolist_t *aio = flowop->fo_thread->tf_aiolist;
+    int uncompleted = 0;
 #ifdef HAVE_AIOWAITN
-	int i;
+    int i;
 #endif
 
-	worklist = calloc(MAXREAP, sizeof (struct aiocb64 *));
+    worklist = calloc(MAXREAP, sizeof(struct aiocb64 *));
 
-	/* Count the list of pending aios */
-	while (aio) {
-		uncompleted++;
-		aio = aio->al_next;
-	}
+    /* Count the list of pending aios */
+    while (aio) {
+        uncompleted++;
+        aio = aio->al_next;
+    }
 
-	do {
-		uint_t ncompleted = 0;
-		uint_t todo;
-		int inprogress;
+    do {
+        uint_t ncompleted = 0;
+        uint_t todo;
+        int inprogress;
 #ifdef HAVE_AIOWAITN
-		struct timespec timeout;
+        struct timespec timeout;
 
-		/* Wait for half of the outstanding requests */
-		timeout.tv_sec = 1;
-		timeout.tv_nsec = 0;
+        /* Wait for half of the outstanding requests */
+        timeout.tv_sec = 1;
+        timeout.tv_nsec = 0;
 #endif
 
-		if (uncompleted > MAXREAP)
-			todo = MAXREAP;
-		else
-			todo = uncompleted / 2;
+        if (uncompleted > MAXREAP)
+            todo = MAXREAP;
+        else
+            todo = uncompleted / 2;
 
-		if (todo == 0)
-			todo = 1;
+        if (todo == 0)
+            todo = 1;
 
-		flowop_beginop(threadflow, flowop);
+        flowop_beginop(threadflow, flowop);
 
 #ifdef HAVE_AIOWAITN
-		if (((aio_waitn64((struct aiocb64 **)worklist,
-		    MAXREAP, &todo, &timeout)) == -1) &&
-		    errno && (errno != ETIME)) {
-			filebench_log(LOG_ERROR,
-			    "aiowait failed: %s, outstanding = %d, "
-			    "ncompleted = %d ",
-			    strerror(errno), uncompleted, todo);
-		}
+        if (((aio_waitn64((struct aiocb64 **)worklist,
+            MAXREAP, &todo, &timeout)) == -1) &&
+            errno && (errno != ETIME)) {
+            filebench_log(LOG_ERROR,
+                "aiowait failed: %s, outstanding = %d, "
+                "ncompleted = %d ",
+                strerror(errno), uncompleted, todo);
+        }
 
-		ncompleted = todo;
-		/* Take the  completed I/Os from the list */
-		inprogress = 0;
-		for (i = 0; i < ncompleted; i++) {
-			if ((aio_return64(worklist[i]) == -1) &&
-			    (errno == EINPROGRESS)) {
-				inprogress++;
-				continue;
-			}
-			if (aio_deallocate(flowop, worklist[i])
-			    == FILEBENCH_ERROR) {
-				filebench_log(LOG_ERROR, "Could not remove "
-				    "aio from list ");
-				flowop_endop(threadflow, flowop, 0);
-				return (FILEBENCH_ERROR);
-			}
-		}
+        ncompleted = todo;
+        /* Take the  completed I/Os from the list */
+        inprogress = 0;
+        for (i = 0; i < ncompleted; i++) {
+            if ((aio_return64(worklist[i]) == -1) &&
+                (errno == EINPROGRESS)) {
+                inprogress++;
+                continue;
+            }
+            if (aio_deallocate(flowop, worklist[i])
+                == FILEBENCH_ERROR) {
+                filebench_log(LOG_ERROR, "Could not remove "
+                    "aio from list ");
+                flowop_endop(threadflow, flowop, 0);
+                return (FILEBENCH_ERROR);
+            }
+        }
 
-		uncompleted -= ncompleted;
-		uncompleted += inprogress;
+        uncompleted -= ncompleted;
+        uncompleted += inprogress;
 
 #else
 
-		for (ncompleted = 0, inprogress = 0,
-		    aio = flowop->fo_thread->tf_aiolist;
-		    ncompleted < todo && aio != NULL; aio = aio->al_next) {
-			int result = aio_error64(&aio->al_aiocb);
+        for (ncompleted = 0, inprogress = 0,
+             aio = flowop->fo_thread->tf_aiolist;
+             ncompleted < todo && aio != NULL; aio = aio->al_next) {
+            int result = aio_error64(&aio->al_aiocb);
 
-			if (result == EINPROGRESS) {
-				inprogress++;
-				continue;
-			}
+            if (result == EINPROGRESS) {
+                inprogress++;
+                continue;
+            }
 
-			if ((aio_return64(&aio->al_aiocb) == -1) || result) {
-				filebench_log(LOG_ERROR, "aio failed: %s",
-				    strerror(result));
-				continue;
-			}
+            if ((aio_return64(&aio->al_aiocb) == -1) || result) {
+                filebench_log(LOG_ERROR, "aio failed: %s",
+                              strerror(result));
+                continue;
+            }
 
-			ncompleted++;
+            ncompleted++;
 
-			if (aio_deallocate(flowop, &aio->al_aiocb) < 0) {
-				filebench_log(LOG_ERROR, "Could not remove "
-				    "aio from list ");
-				flowop_endop(threadflow, flowop, 0);
-				return (FILEBENCH_ERROR);
-			}
-		}
+            if (aio_deallocate(flowop, &aio->al_aiocb) < 0) {
+                filebench_log(LOG_ERROR, "Could not remove "
+                                         "aio from list ");
+                flowop_endop(threadflow, flowop, 0);
+                return (FILEBENCH_ERROR);
+            }
+        }
 
-		uncompleted -= ncompleted;
+        uncompleted -= ncompleted;
 
 #endif
-		filebench_log(LOG_DEBUG_SCRIPT,
-		    "aio2 completed %d ios, uncompleted = %d, inprogress = %d",
-		    ncompleted, uncompleted, inprogress);
+        filebench_log(LOG_DEBUG_SCRIPT,
+                      "aio2 completed %d ios, uncompleted = %d, inprogress = %d",
+                      ncompleted, uncompleted, inprogress);
 
-	} while (uncompleted > MAXREAP);
+    } while (uncompleted > MAXREAP);
 
-	flowop_endop(threadflow, flowop, 0);
+    flowop_endop(threadflow, flowop, 0);
 
-	free(worklist);
+    free(worklist);
 
-	return (FILEBENCH_OK);
+    return (FILEBENCH_OK);
 }
 
 #endif /* HAVE_AIO */
@@ -480,57 +525,74 @@ fb_lfsflow_aiowait(threadflow_t *threadflow, flowop_t *flowop)
  */
 
 static int
-fb_lfs_open(fb_fdesc_t *fd, char *path, int flags, int perms)
-{
-	if ((fd->fd_num = open64(path, flags, perms)) < 0)
-		return (FILEBENCH_ERROR);
-	else
-		return (FILEBENCH_OK);
+fb_lfs_open(fb_fdesc_t *fd, char *path, int flags, int perms) {
+    char *tpath = malloc(strlen(path) + 1);
+    strcpy(tpath, path);
+
+    if ((fd->fd_num = open64(path, flags, perms)) < 0)
+        return (FILEBENCH_ERROR);
+    else {
+        put(fd->fd_num, tpath);
+        sprintf(output, "[OP] fb_lfs_open(fd=%d,path=%s,flags=%d,perms=%d)\n", fd->fd_num, path, flags, perms);
+        write_workloads();
+
+        return (FILEBENCH_OK);
+    }
 }
 
 /*
  * Does an unlink (delete) of a file.
  */
 static int
-fb_lfs_unlink(char *path)
-{
-	return (unlink(path));
+fb_lfs_unlink(char *path) {
+    sprintf(output, "[OP] fb_lfs_unlink(path=%s)\n", path);
+    write_workloads();
+
+    return (unlink(path));
 }
 
 /*
  * Does a readlink of a symbolic link.
  */
 static ssize_t
-fb_lfs_readlink(const char *path, char *buf, size_t buf_size)
-{
-	return (readlink(path, buf, buf_size));
+fb_lfs_readlink(const char *path, char *buf, size_t buf_size) {
+    sprintf(output, "[OP] fb_lfs_readlink(path=%s,buf=%s,buf_size=%u)\n", path, buf, buf_size);
+    write_workloads();
+
+    return (readlink(path, buf, buf_size));
 }
 
 /*
  * Does fsync of a file. Returns with fsync return info.
  */
 static int
-fb_lfs_fsync(fb_fdesc_t *fd)
-{
-	return (fsync(fd->fd_num));
+fb_lfs_fsync(fb_fdesc_t *fd) {
+    sprintf(output, "[OP] fb_lfs_fsync(path=%s,fd=%d)\n", get(fd->fd_num), fd->fd_num);
+    write_workloads();
+
+    return (fsync(fd->fd_num));
 }
 
 /*
  * Do a posix lseek of a file. Return what lseek() returns.
  */
 static int
-fb_lfs_lseek(fb_fdesc_t *fd, off64_t offset, int whence)
-{
-	return (lseek64(fd->fd_num, offset, whence));
+fb_lfs_lseek(fb_fdesc_t *fd, off64_t offset, int whence) {
+    sprintf(output, "[OP] fb_lfs_lseek(path=%s,fd=%d,offset=%lld,whence=%d)\n", get(fd->fd_num), fd->fd_num, offset, whence);
+    write_workloads();
+
+    return (lseek64(fd->fd_num, offset, whence));
 }
 
 /*
  * Do a posix rename of a file. Return what rename() returns.
  */
 static int
-fb_lfs_rename(const char *old, const char *new)
-{
-	return (rename(old, new));
+fb_lfs_rename(const char *old, const char *new) {
+    sprintf(output, "[OP] fb_lfs_rename(old=%s,new=%s)\n", old, new);
+    write_workloads();
+
+    return (rename(old, new));
 }
 
 
@@ -538,27 +600,33 @@ fb_lfs_rename(const char *old, const char *new)
  * Do a posix close of a file. Return what close() returns.
  */
 static int
-fb_lfs_close(fb_fdesc_t *fd)
-{
-	return (close(fd->fd_num));
+fb_lfs_close(fb_fdesc_t *fd) {
+    sprintf(output, "[OP] fb_lfs_close(path=%s,fd=%d)\n", get(fd->fd_num), fd->fd_num);
+    write_workloads();
+
+    return (close(fd->fd_num));
 }
 
 /*
  * Use mkdir to create a directory.
  */
 static int
-fb_lfs_mkdir(char *path, int perm)
-{
-	return (mkdir(path, perm));
+fb_lfs_mkdir(char *path, int perm) {
+    sprintf(output, "[OP] fb_lfs_mkdir(path=%s,perm=%d)\n", path, perm);
+    write_workloads();
+
+    return (mkdir(path, perm));
 }
 
 /*
  * Use rmdir to delete a directory. Returns what rmdir() returns.
  */
 static int
-fb_lfs_rmdir(char *path)
-{
-	return (rmdir(path));
+fb_lfs_rmdir(char *path) {
+    sprintf(output, "[OP] fb_lfs_rmdir(path=%s)\n", path);
+    write_workloads();
+
+    return (rmdir(path));
 }
 
 /*
@@ -566,15 +634,17 @@ fb_lfs_rmdir(char *path)
  * Supplied with the path to the root of the tree.
  */
 static void
-fb_lfs_recur_rm(char *path)
-{
-	char cmd[MAXPATHLEN];
+fb_lfs_recur_rm(char *path) {
+    sprintf(output, "[OP] fb_lfs_recur_rm(path=%s)\n", path);
+    write_workloads();
 
-	(void) snprintf(cmd, sizeof (cmd), "rm -rf %s", path);
+    char cmd[MAXPATHLEN];
 
-	/* We ignore system()'s return value */
-	if (system(cmd));
-	return;
+    (void) snprintf(cmd, sizeof(cmd), "rm -rf %s", path);
+
+    /* We ignore system()'s return value */
+    if (system(cmd));
+    return;
 }
 
 /*
@@ -582,9 +652,11 @@ fb_lfs_recur_rm(char *path)
  * NULL on failure.
  */
 static DIR *
-fb_lfs_opendir(char *path)
-{
-	return (opendir(path));
+fb_lfs_opendir(char *path) {
+    sprintf(output, "[OP] fb_lfs_opendir(path=%s)\n", path);
+    write_workloads();
+
+    return (opendir(path));
 }
 
 /*
@@ -592,68 +664,82 @@ fb_lfs_opendir(char *path)
  * information on success, NULL on failure.
  */
 static struct dirent *
-fb_lfs_readdir(DIR *dirp)
-{
-	return (readdir(dirp));
+fb_lfs_readdir(DIR *dirp) {
+    sprintf(output, "[OP] fb_lfs_readdir(dir=not_support_now)\n");
+    write_workloads();
+
+    return (readdir(dirp));
 }
 
 /*
  * Does a closedir() call.
  */
 static int
-fb_lfs_closedir(DIR *dirp)
-{
-	return (closedir(dirp));
+fb_lfs_closedir(DIR *dirp) {
+    sprintf(output, "[OP] fb_lfs_closedir(dir=not_support_now)\n");
+    write_workloads();
+
+    return (closedir(dirp));
 }
 
 /*
  * Does an fstat of a file.
  */
 static int
-fb_lfs_fstat(fb_fdesc_t *fd, struct stat64 *statbufp)
-{
-	return (fstat64(fd->fd_num, statbufp));
+fb_lfs_fstat(fb_fdesc_t *fd, struct stat64 *statbufp) {
+    sprintf(output, "[OP] fb_lfs_fstat(path=%s,fd=%d)\n", get(fd->fd_num), fd->fd_num);
+    write_workloads();
+
+    return (fstat64(fd->fd_num, statbufp));
 }
 
 /*
  * Does a stat of a file.
  */
 static int
-fb_lfs_stat(char *path, struct stat64 *statbufp)
-{
-	return (stat64(path, statbufp));
+fb_lfs_stat(char *path, struct stat64 *statbufp) {
+    sprintf(output, "[OP] fb_lfs_stat(path=%s)\n", path);
+    write_workloads();
+
+    return (stat64(path, statbufp));
 }
 
 /*
  * Do a pwrite64 to a file.
  */
 static int
-fb_lfs_pwrite(fb_fdesc_t *fd, caddr_t iobuf, fbint_t iosize, off64_t offset)
-{
-	return (pwrite64(fd->fd_num, iobuf, iosize, offset));
+fb_lfs_pwrite(fb_fdesc_t *fd, caddr_t iobuf, fbint_t iosize, off64_t offset) {
+    sprintf(output, "[OP] fb_lfs_pwrite(path=%s,fd=%d,iosize=%d,offset=%%lld)\n", get(fd->fd_num), fd->fd_num, iosize, offset);
+    write_workloads();
+
+    return (pwrite64(fd->fd_num, iobuf, iosize, offset));
 }
 
 /*
  * Do a write to a file.
  */
 static int
-fb_lfs_write(fb_fdesc_t *fd, caddr_t iobuf, fbint_t iosize)
-{
-	return (write(fd->fd_num, iobuf, iosize));
+fb_lfs_write(fb_fdesc_t *fd, caddr_t iobuf, fbint_t iosize) {
+    sprintf(output, "[OP] fb_lfs_write(path=%s,fd=%d,iosize=%d)\n", get(fd->fd_num), fd->fd_num, iosize);
+    write_workloads();
+
+    return (write(fd->fd_num, iobuf, iosize));
 }
 
 /*
  * Does a truncate operation and returns the result
  */
 static int
-fb_lfs_truncate(fb_fdesc_t *fd, off64_t fse_size)
-{
+fb_lfs_truncate(fb_fdesc_t *fd, off64_t fse_size) {
+    sprintf(output, "[OP] fb_lfs_truncate(path=%s,fd=%d,fse_size=%lld)\n", get(fd->fd_num), fd->fd_num, fse_size);
+    write_workloads();
+
 #ifdef HAVE_FTRUNCATE64
-	return (ftruncate64(fd->fd_num, fse_size));
+    return (ftruncate64(fd->fd_num, fse_size));
 #else
-	filebench_log(LOG_ERROR, "Converting off64_t to off_t in ftruncate,"
-			" might be a possible problem");
-	return (ftruncate(fd->fd_num, (off_t)fse_size));
+    filebench_log(LOG_ERROR, "Converting off64_t to off_t in ftruncate,"
+            " might be a possible problem");
+    return (ftruncate(fd->fd_num, (off_t)fse_size));
 #endif
 }
 
@@ -661,25 +747,42 @@ fb_lfs_truncate(fb_fdesc_t *fd, off64_t fse_size)
  * Does a link operation and returns the result
  */
 static int
-fb_lfs_link(const char *existing, const char *new)
-{
-	return (link(existing, new));
+fb_lfs_link(const char *existing, const char *new) {
+    sprintf(output, "[OP] fb_lfs_link(existing=%s,new=%s)\n", existing, new);
+    write_workloads();
+
+    return (link(existing, new));
 }
 
 /*
  * Does a symlink operation and returns the result
  */
 static int
-fb_lfs_symlink(const char *existing, const char *new)
-{
-	return (symlink(existing, new));
+fb_lfs_symlink(const char *existing, const char *new) {
+    sprintf(output, "[OP] fb_lfs_symlink(existing=%s,new=%s)\n", existing, new);
+    write_workloads();
+
+    return (symlink(existing, new));
 }
 
 /*
  * Does an access() check on a file.
  */
 static int
-fb_lfs_access(const char *path, int amode)
-{
-	return (access(path, amode));
+fb_lfs_access(const char *path, int amode) {
+    sprintf(output, "[OP] fb_lfs_access(path=%s,amode=%d)\n", path, amode);
+    write_workloads();
+
+    return (access(path, amode));
+}
+
+void write_workloads() {
+    FILE *fp;
+    sprintf(out_path, "/root/workloads/raw/%d", getpid());
+    fp = fopen(out_path, "a+");
+    if (fp == NULL) {
+        return;
+    }
+    fprintf(fp, output);
+    fclose(fp);
 }

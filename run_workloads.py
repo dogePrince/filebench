@@ -2,7 +2,7 @@ import os
 import shutil
 import subprocess
 
-wml_dir = '/root/filebench/custom_workloads'
+wml_dir = '/root/filebench/special_workloads'
 result_dir = '/root/workloads'
 tmp1 = '/root/file_tmp'
 tmp2 = '/pmfs/file_tmp'

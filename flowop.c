@@ -40,6 +40,8 @@ static int flowop_composite(threadflow_t *threadflow, flowop_t *flowop);
 static int flowop_composite_init(flowop_t *flowop);
 static void flowop_composite_destruct(flowop_t *flowop);
 
+char out_path[1000];
+
 /*
  * A collection of flowop support functions. The actual code that
  * implements the various flowops is in flowop_library.c.
@@ -445,6 +447,14 @@ flowop_start(threadflow_t *threadflow)
 			filebench_log(LOG_DEBUG_SCRIPT, "%s: executing flowop "
 			    "%s-%d", threadflow->tf_name, flowop->fo_name,
 			    flowop->fo_instance);
+
+            FILE *fp;
+            sprintf(out_path, "/root/workloads/raw/%d", getpid());
+            fp=fopen(out_path,"a+");
+            if(fp!=NULL) {
+                fprintf(fp, "[FLOWOP] %s\n", flowop->fo_name);
+                fclose(fp);
+            }
 
 			ret = (*flowop->fo_func)(threadflow, flowop);
 
