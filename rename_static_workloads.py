@@ -21,12 +21,14 @@ for sub in static_workloads.iterdir():
         run_count = 0
         for workload in sub.iterdir():
             is_pre = True
-            with workload.open('rb') as f:
-                c = f.read()
-                encoding = chardet.detect(c)['encoding']
+            # with workload.open('rb') as f:
+            #     c = f.read()
+            #     encoding = chardet.detect(c)['encoding']
+            #
+            #     print(workload, encoding)
 
             tmp_file = sub.joinpath('des')
-            with workload.open(encoding=encoding) as f_in:
+            with workload.open() as f_in:
                 with tmp_file.open('w') as f_out:
                     line = f_in.readline()
                     while line:
@@ -39,10 +41,8 @@ for sub in static_workloads.iterdir():
             if is_pre:
                 des_file = sub.joinpath('prepare_' + str(pre_count))
                 pre_count += 1
-                print(workload, 'pre', pre_count)
             else:
                 des_file = sub.joinpath('run_' + str(run_count))
                 run_count += 1
-                print(workload, 'run', run_count)
 
-            workload.replace(sub.joinpath('run_' + str(run_count)))
+            tmp_file.replace(des_file)
