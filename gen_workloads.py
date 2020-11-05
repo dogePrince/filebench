@@ -13,22 +13,29 @@ common_config = {
 
 configs = {
     'copyfiles': {
-        **common_config
+        **common_config,
+        'runtime': {'2s': 2},
+        'nfiles': {'50kf': 50000}
     },
     'fileserver': {
         **common_config,
-        'runtime': {'10s': 10}
+        'runtime': {'10s': 10},
+        'nfiles': {'10kf': 10000}
     },
     'mongo': {
-        **common_config
+        **common_config,
+        'runtime': {'2s': 2},
+        'nfiles': {'50kf': 50000}
     },
     'netsfs': {
         **common_config,
-        'runtime': {'10s': 10}
+        'runtime': {'10s': 10},
+        'nfiles': {'100kf': 100000}
     },
     'webserver': {
         **common_config,
-        'runtime': {'10s': 10}
+        'runtime': {'10s': 10},
+        'nfiles': {'1kf': 1000}
     }
 }
 
