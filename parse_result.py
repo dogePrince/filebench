@@ -51,6 +51,7 @@ with open(src) as file_in:
             if file_out:
                 file_out.close()
             file_out = open(os.path.join(res_dir, cur + '.csv'), 'w')
+            file_out.write('flowOP,ops,op/s,throughput,time/op,tmin_latency-max_latency')
         elif result_regex.match(line):
             if file_out:
                 res = ','.join(spliter.split(line.strip()))
