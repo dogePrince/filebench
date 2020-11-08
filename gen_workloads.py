@@ -15,7 +15,7 @@ configs = {
     'copyfiles': {
         **common_config,
         'runtime': {'2s': 2},
-        'nfiles': {'50kf': 50000}
+        'nfiles': {'100kf': 100000}
     },
     'fileserver': {
         **common_config,
@@ -25,7 +25,7 @@ configs = {
     'mongo': {
         **common_config,
         'runtime': {'2s': 2},
-        'nfiles': {'50kf': 50000}
+        'nfiles': {'100kf': 100000}
     },
     'netsfs': {
         **common_config,
