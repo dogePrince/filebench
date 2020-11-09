@@ -30,7 +30,7 @@ set $meanfilesize=16k
 set $iosize=1m
 set $nthreads={^ nthreads ^}
 
-set mode quit firstdone
+# set mode quit firstdone
 
 define fileset name=bigfileset,path=$dir,size=$meanfilesize,entries=$nfiles,dirwidth=$meandirwidth,prealloc=100
 define fileset name=destfiles,path=$dir,size=$meanfilesize,entries=$nfiles,dirwidth=$meandirwidth
@@ -50,4 +50,4 @@ define process name=filereader,instances=1
 
 echo  "Copyfiles Version 3.0 personality successfully loaded"
 
-# run {^ runtime ^}
+run {^ runtime ^}
