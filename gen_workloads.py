@@ -15,26 +15,26 @@ configs = {
     'copyfiles': {
         **common_config,
         'runtime': {'2s': 2},
-        'nfiles': {'20kf': 20000}
+        'nfiles': {'1kf': 1000}
     },
     'fileserver': {
         **common_config,
-        'runtime': {'10s': 10},
+        'runtime': {'60s': 60},
         'nfiles': {'10kf': 10000}
     },
     'mongo': {
         **common_config,
         'runtime': {'2s': 2},
-        'nfiles': {'20kf': 20000}
+        'nfiles': {'1kf': 1000}
     },
-    'netsfs': {
-        **common_config,
-        'runtime': {'10s': 10},
-        'nfiles': {'100kf': 100000}
-    },
+    # 'netsfs': {
+    #     **common_config,
+    #     'runtime': {'10s': 10},
+    #     'nfiles': {'100kf': 100000}
+    # },
     'webserver': {
         **common_config,
-        'runtime': {'10s': 10},
+        'runtime': {'60s': 60},
         'nfiles': {'1kf': 1000}
     }
 }
