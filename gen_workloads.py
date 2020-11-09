@@ -8,7 +8,7 @@ pm_path = '/pmfs/file_tmp'
 common_config = {
     # 'workspace': {'ssd': ssd_path, 'pm': pm_path},
     'workspace': {'pm': pm_path},
-    'nthreads': {1: 1},
+    'nthreads': {4: 4},
     # 'sync': {'async': '', 'sync': ',dsync'}
     'sync': {'sync': ',dsync'}
 }
@@ -17,17 +17,17 @@ configs = {
     'copyfiles': {
         **common_config,
         'runtime': {'2s': 2},
-        'nfiles': {'30kf': 30000}
+        'nfiles': {'120kf': 120000}
     },
     'fileserver': {
         **common_config,
         'runtime': {'60s': 60},
-        'nfiles': {'10kf': 10000}
+        'nfiles': {'40kf': 40000}
     },
     'mongo': {
         **common_config,
         'runtime': {'2s': 2},
-        'nfiles': {'30kf': 30000}
+        'nfiles': {'120kf': 120000}
     },
     # 'netsfs': {
     #     **common_config,
@@ -37,7 +37,7 @@ configs = {
     'webserver': {
         **common_config,
         'runtime': {'60s': 60},
-        'nfiles': {'1kf': 1000}
+        'nfiles': {'4kf': 4000}
     }
 }
 
