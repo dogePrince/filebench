@@ -19,8 +19,8 @@ configs = {
     },
     'fileserver': {
         **common_config,
-        'runtime': {'60s': 60},
-        'nfiles': {'10kf': 10000}
+        'runtime': {'10s': 10},
+        'nfiles': {'2kf': 2000}
     },
     'mongo': {
         **common_config,
@@ -34,7 +34,7 @@ configs = {
     # },
     'webserver': {
         **common_config,
-        'runtime': {'60s': 60},
+        'runtime': {'10s': 10},
         'nfiles': {'1kf': 1000}
     }
 }
