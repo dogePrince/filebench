@@ -15,6 +15,7 @@ for sub in static_workloads.iterdir():
                 file.unlink()
 
 
+rm_files_str = '[OP] fb_lfs_recur_rm(path=/pmfs)\n'
 for sub in static_workloads.iterdir():
     if sub.is_dir() and sub.name not in except_name:
         pre_count = 0
@@ -28,8 +29,9 @@ for sub in static_workloads.iterdir():
             #     print(workload, encoding)
 
             tmp_file = sub.joinpath('des')
-            with workload.open() as f_in:
-                with tmp_file.open('w') as f_out:
+            with tmp_file.open('w') as f_out:
+                f_out.write(rm_files_str)
+                with workload.open() as f_in:
                     line = f_in.readline()
                     while line:
                         f_out.write(line)
