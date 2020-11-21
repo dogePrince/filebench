@@ -5,9 +5,11 @@ import copy
 ssd_path = '/root/file_tmp'
 pm_path = '/pmfs/file_tmp'
 
+nt = 1
+
 common_config = {
     'workspace': {'pm': pm_path},
-    'nthreads': {1: 1},
+    'nthreads': {nt: nt},
     'sync': {'sync': ',dsync'}
 }
 
@@ -15,17 +17,17 @@ configs = {
     'copyfiles': {
         **common_config,
         'runtime': {'2s': 2},
-        'nfiles': {'30kf': 30000}
+        'nfiles': {f'{nt * 30}kf': nt * 30000}
     },
     'fileserver': {
         **common_config,
         'runtime': {'10s': 10},
-        'nfiles': {'10kf': 10000}
+        'nfiles': {f'{nt * 10}kf': nt * 10000}
     },
     'mongo': {
         **common_config,
         'runtime': {'2s': 2},
-        'nfiles': {'30kf': 30000}
+        'nfiles': {f'{nt * 30}kf': nt * 30000}
     },
     # 'netsfs': {
     #     **common_config,
@@ -35,12 +37,12 @@ configs = {
     'webserver': {
         **common_config,
         'runtime': {'10s': 10},
-        'nfiles': {'1kf': 1000}
+        'nfiles': {f'{nt}kf': nt * 1000}
     },
     'varmail': {
         **common_config,
         'runtime': {'60s': 60},
-        'nfiles': {'1kf': 1000}
+        'nfiles': {f'{nt}kf': nt * 1000}
     },
 }
 
