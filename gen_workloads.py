@@ -40,7 +40,12 @@ configs = {
         **common_config,
         'runtime': {'60s': 60},
         'nfiles': {'4kf': 4000}
-    }
+    },
+    'varmail': {
+        **common_config,
+        'runtime': {'60s': 60},
+        'nfiles': {'1kf': 1000}
+    },
 }
 
 temp_dir = 'workloads_templates'
