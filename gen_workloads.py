@@ -41,7 +41,7 @@ configs = {
     },
     'varmail': {
         **common_config,
-        'runtime': {'60s': 60},
+        'runtime': {'10s': 10},
         'nfiles': {f'{nt}kf': nt * 1000}
     },
 }
