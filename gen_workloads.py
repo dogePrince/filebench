@@ -20,7 +20,7 @@ configs = {
     'fileserver': {
         **common_config,
         'runtime': {'10s': 10},
-        'nfiles': {'2kf': 2000}
+        'nfiles': {'10kf': 10000}
     },
     'mongo': {
         **common_config,

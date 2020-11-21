@@ -15,28 +15,21 @@ for sub in static_workloads.iterdir():
                 file.unlink()
 
 
+rm_files_str = '[OP] fb_lfs_recur_rm(path=/pmfs)\n'
 for sub in static_workloads.iterdir():
     if sub.is_dir() and sub.name not in except_name:
         pre_count = 0
         run_count = 0
         for workload in sub.iterdir():
             is_pre = True
-            # with workload.open('rb') as f:
-            #     c = f.read()
-            #     encoding = chardet.detect(c)['encoding']
-            #
-            #     print(workload, encoding)
 
-            tmp_file = sub.joinpath('des')
             with workload.open() as f_in:
-                with tmp_file.open('w') as f_out:
+                line = f_in.readline()
+                while line:
+                    if line.startswith('[FLOWOP]'):
+                        is_pre = False
+                        break
                     line = f_in.readline()
-                    while line:
-                        f_out.write(line)
-                        if line.startswith('[FLOWOP]'):
-                            is_pre = False
-                        line = f_in.readline()
-
 
             if is_pre:
                 des_file = sub.joinpath('prepare_' + str(pre_count))
@@ -45,4 +38,12 @@ for sub in static_workloads.iterdir():
                 des_file = sub.joinpath('run_' + str(run_count))
                 run_count += 1
 
-            tmp_file.replace(des_file)
+            with workload.open() as f_in:
+                with des_file.open('w') as f_out:
+                    if is_pre:
+                        f_out.write(rm_files_str)
+
+                    line = f_in.readline()
+                    while line:
+                        f_out.write(line)
+                        line = f_in.readline()
