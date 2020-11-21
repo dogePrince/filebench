@@ -2547,6 +2547,9 @@ parser_run(cmd_t *cmd)
 	runtime = cmd->cmd_qty;
 
 	parser_fileset_create(cmd);
+
+	filebench_log(LOG_INFO, "[parser_run] Waiting for starting code. Current pid is %d", getpid());
+	kill(getpid(), SIGSTOP);
 	proc_create();
 
 	/* check for startup errors */
@@ -2595,6 +2598,8 @@ parser_psrun(cmd_t *cmd)
 	}
 
 	parser_fileset_create(cmd);
+
+	filebench_log(LOG_INFO, "[parser_psrun] Waiting for starting code");
 	proc_create();
 
 	/* check for startup errors */
@@ -2655,6 +2660,8 @@ parser_run_variable(cmd_t *cmd)
 	runtime = avd_get_int(integer);
 
 	parser_fileset_create(cmd);
+
+	filebench_log(LOG_INFO, "[parser_run_variable] Waiting for starting code");
 	proc_create();
 
 	/* check for startup errors */

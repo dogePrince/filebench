@@ -1,14 +1,16 @@
 from jinja2 import Template
 import os
 import copy
+import socket
 
-ssd_path = '/root/file_tmp'
-pm_path = '/pmfs/file_tmp'
+host_name = socket.gethostname()
+ssd_path = f'/root/file_tmp_{host_name}'
+pm_path = f'/pmfs/file_tmp_{host_name}'
 
 common_config = {
     # 'workspace': {'ssd': ssd_path, 'pm': pm_path},
     'workspace': {'pm': pm_path},
-    'nthreads': {4: 4},
+    'nthreads': {1: 1},
     # 'sync': {'async': '', 'sync': ',dsync'}
     'sync': {'sync': ',dsync'}
 }
