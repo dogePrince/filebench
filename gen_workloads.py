@@ -7,11 +7,12 @@ host_name = socket.gethostname()
 ssd_path = f'/root/file_tmp_{host_name}'
 pm_path = f'/pmfs/file_tmp_{host_name}'
 
+nt = 1
+
 common_config = {
     # 'workspace': {'ssd': ssd_path, 'pm': pm_path},
     'workspace': {'pm': pm_path},
-    'nthreads': {1: 1},
-    # 'sync': {'async': '', 'sync': ',dsync'}
+    'nthreads': {nt: nt},
     'sync': {'sync': ',dsync'}
 }
 
@@ -19,17 +20,17 @@ configs = {
     'copyfiles': {
         **common_config,
         'runtime': {'2s': 2},
-        'nfiles': {'120kf': 120000}
+        'nfiles': {f'{nt * 30}kf': nt * 30000}
     },
     'fileserver': {
         **common_config,
         'runtime': {'60s': 60},
-        'nfiles': {'40kf': 40000}
+        'nfiles': {f'{nt * 10}kf': nt * 10000}
     },
     'mongo': {
         **common_config,
         'runtime': {'2s': 2},
-        'nfiles': {'120kf': 120000}
+        'nfiles': {f'{nt * 30}kf': nt * 30000}
     },
     # 'netsfs': {
     #     **common_config,
@@ -39,12 +40,12 @@ configs = {
     'webserver': {
         **common_config,
         'runtime': {'60s': 60},
-        'nfiles': {'4kf': 4000}
+        'nfiles': {f'{nt}kf': nt * 1000}
     },
     'varmail': {
         **common_config,
         'runtime': {'60s': 60},
-        'nfiles': {'1kf': 1000}
+        'nfiles': {f'{nt}kf': nt * 1000}
     },
 }
 
