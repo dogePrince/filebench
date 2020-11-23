@@ -2600,6 +2600,7 @@ parser_psrun(cmd_t *cmd)
 	parser_fileset_create(cmd);
 
 	filebench_log(LOG_INFO, "[parser_psrun] Waiting for starting code");
+	kill(getpid(), SIGSTOP);
 	proc_create();
 
 	/* check for startup errors */
@@ -2662,6 +2663,7 @@ parser_run_variable(cmd_t *cmd)
 	parser_fileset_create(cmd);
 
 	filebench_log(LOG_INFO, "[parser_run_variable] Waiting for starting code");
+	kill(getpid(), SIGSTOP);
 	proc_create();
 
 	/* check for startup errors */
