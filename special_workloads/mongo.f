@@ -22,36 +22,35 @@
 # Copyright 2008 Sun Microsystems, Inc.  All rights reserved.
 # Use is subject to license terms.
 #
+# ident	"%Z%%M%	%I%	%E% SMI"
 
-set $dir=/pmfs/tmp_file
-set $nfiles=10000
-set $meandirwidth=20
-set $filesize=cvar(type=cvar-gamma,parameters=mean:131072;gamma:1.5)
-set $nthreads=50
-set $iosize=1m
-set $meanappendsize=16k
-set $runtime=10
+set $dir=/pmfs/file_tmp
+set $nfiles=30000
+set $dirwidth=200
+set $filesize=16k
+set $nthreads=1
+set $meaniosize=16k
+set $readiosize=1m
 
-define fileset name=bigfileset,path=$dir,size=$filesize,entries=$nfiles,dirwidth=$meandirwidth,prealloc=80
+# set mode quit firstdone
+
+define fileset name=postset,path=$dir,size=$filesize,entries=$nfiles,dirwidth=$dirwidth,prealloc
+define fileset name=postsetdel,path=$dir,size=$filesize,entries=$nfiles,dirwidth=$dirwidth,prealloc
 
 define process name=filereader,instances=1
 {
   thread name=filereaderthread,memsize=10m,instances=$nthreads
   {
-    flowop createfile name=createfile1,filesetname=bigfileset,fd=1
-    flowop writewholefile name=wrtfile1,srcfd=1,fd=1,iosize=$iosize
+    flowop openfile name=openfile1,filesetname=postset,fd=1,dsync
+    flowop appendfilerand name=appendfilerand1,iosize=$meaniosize,fd=1
     flowop closefile name=closefile1,fd=1
-    flowop openfile name=openfile1,filesetname=bigfileset,fd=1
-    flowop appendfilerand name=appendfilerand1,iosize=$meanappendsize,fd=1
+    flowop openfile name=openfile2,filesetname=postset,fd=1,dsync
+    flowop readwholefile name=readfile1,fd=1,iosize=$readiosize
     flowop closefile name=closefile2,fd=1
-    flowop openfile name=openfile2,filesetname=bigfileset,fd=1
-    flowop readwholefile name=readfile1,fd=1,iosize=$iosize
-    flowop closefile name=closefile3,fd=1
-    flowop deletefile name=deletefile1,filesetname=bigfileset
-    flowop statfile name=statfile1,filesetname=bigfileset
+    flowop deletefile name=deletefile1,filesetname=postsetdel
   }
 }
 
-echo  "File-server Version 3.0 personality successfully loaded"
+echo  "Mongo-like Version 2.3 personality successfully loaded"
 
-run $runtime
+run 2

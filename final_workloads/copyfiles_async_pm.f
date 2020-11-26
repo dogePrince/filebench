@@ -19,39 +19,35 @@
 # CDDL HEADER END
 #
 #
-# Copyright 2008 Sun Microsystems, Inc.  All rights reserved.
+# Copyright 2009 Sun Microsystems, Inc.  All rights reserved.
 # Use is subject to license terms.
 #
 
-set $dir=/pmfs/tmp_file
-set $nfiles=10000
+set $dir=/pmfs/file_tmp
+set $nfiles=1000
 set $meandirwidth=20
-set $filesize=cvar(type=cvar-gamma,parameters=mean:131072;gamma:1.5)
-set $nthreads=50
+set $meanfilesize=16k
 set $iosize=1m
-set $meanappendsize=16k
-set $runtime=10
+set $nthreads=1
 
-define fileset name=bigfileset,path=$dir,size=$filesize,entries=$nfiles,dirwidth=$meandirwidth,prealloc=80
+set mode quit firstdone
+
+define fileset name=bigfileset,path=$dir,size=$meanfilesize,entries=$nfiles,dirwidth=$meandirwidth,prealloc=100,paralloc
+define fileset name=destfiles,path=$dir,size=$meanfilesize,entries=$nfiles,dirwidth=$meandirwidth
 
 define process name=filereader,instances=1
 {
   thread name=filereaderthread,memsize=10m,instances=$nthreads
   {
-    flowop createfile name=createfile1,filesetname=bigfileset,fd=1
-    flowop writewholefile name=wrtfile1,srcfd=1,fd=1,iosize=$iosize
-    flowop closefile name=closefile1,fd=1
     flowop openfile name=openfile1,filesetname=bigfileset,fd=1
-    flowop appendfilerand name=appendfilerand1,iosize=$meanappendsize,fd=1
-    flowop closefile name=closefile2,fd=1
-    flowop openfile name=openfile2,filesetname=bigfileset,fd=1
     flowop readwholefile name=readfile1,fd=1,iosize=$iosize
-    flowop closefile name=closefile3,fd=1
-    flowop deletefile name=deletefile1,filesetname=bigfileset
-    flowop statfile name=statfile1,filesetname=bigfileset
+    flowop createfile name=createfile2,filesetname=destfiles,fd=2
+    flowop writewholefile name=writefile2,fd=2,srcfd=1,iosize=$iosize
+    flowop closefile name=closefile1,fd=1
+    flowop closefile name=closefile2,fd=2
   }
 }
 
-echo  "File-server Version 3.0 personality successfully loaded"
+echo  "Copyfiles Version 3.0 personality successfully loaded"
 
-run $runtime
+run

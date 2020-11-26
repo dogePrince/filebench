@@ -23,9 +23,10 @@ EXTRA_DIST = LICENSE
 
 ACLOCAL_AMFLAGS = -I m4
 AM_YFLAGS = -d
-#AM_LDFLAGS = 
+#AM_LDFLAGS =
 if GCC_USED
 AM_CFLAGS = -Wall -Wno-unknown-pragmas
 endif
+LIBS = -ldl -lpthread -lm -lrt -ljvm
 
 DEFS = -D_REENTRANT -DYYDEBUG -DYY_NO_INPUT -DFBLIBDIR=\"$(libdir)\" -D_LARGEFILE64_SOURCE -D_GNU_SOURCE
