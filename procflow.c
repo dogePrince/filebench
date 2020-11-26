@@ -35,7 +35,7 @@
 #include "flowop.h"
 #include "ipc.h"
 #include "eventgen.h"
-
+extern jvm_class jvm;
 /* pid and procflow pointer for this process */
 pid_t my_pid;
 procflow_t *my_procflow = NULL;
@@ -245,6 +245,9 @@ procflow_find(char *name, int instance)
 
 	return (NULL);
 }
+extern char* get_classpath();
+extern JNIEnv *create_vm(JavaVM **jvm, JNIEnv **env);
+extern void init_vm(jvm_class* jvm);
 
 /*
  * Used to start up threads on a child process, when filebench is
@@ -278,6 +281,9 @@ procflow_exec(char *name, int instance)
 
 	/* set its pid from value stored by main() */
 	procflow->pf_pid = my_pid;
+
+    filebench_log(LOG_INFO, "[running] build RDMA connection for pid %d", my_pid);
+    init_vm(&jvm);
 
 	filebench_log(LOG_DEBUG_IMPL,
 	    "Started up %s pid %d", procflow->pf_name, my_pid);
@@ -464,6 +470,7 @@ procflow_init(void)
 	clear_flag(&filebench_shm->shm_procflows_defined_flag);
 
 	ret = pthread_create(&tid, NULL, procflow_createnwait, NULL);
+    filebench_log(LOG_INFO, "[log] procflow_init2, pid is %d", getpid());
 	if (ret)
 		return ret;
 
@@ -796,6 +803,8 @@ proc_create()
 	filebench_shm->shm_f_abort = FILEBENCH_OK;
 
 	(void) pthread_rwlock_rdlock(&filebench_shm->shm_run_lock);
+
+    filebench_log(LOG_INFO, "[log] proc_create_802, pid is %d", getpid());
 
 	if (procflow_init() != 0) {
 		filebench_log(LOG_ERROR, "Failed to create processes\n");

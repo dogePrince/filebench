@@ -48,7 +48,7 @@
 #include "fb_random.h"
 #include "utils.h"
 #include "fsplug.h"
-
+extern jvm_class* jvm;
 /*
  * These routines implement the flowops from the f language. Each
  * flowop has has a name such as "read", and a set of function pointers

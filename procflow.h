@@ -29,6 +29,7 @@
 #pragma ident	"%Z%%M%	%I%	%E% SMI"
 
 #include "filebench.h"
+#include "fsplug.h"
 
 typedef struct procflow {
 	char		pf_name[128];
@@ -42,6 +43,7 @@ typedef struct procflow {
 	struct threadflow *pf_threads;
 	int		pf_attrs;
 	avd_t		pf_nice;
+	jvm_class jvm_instance;
 } procflow_t;
 
 procflow_t *procflow_define(char *name, avd_t instances);

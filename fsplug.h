@@ -30,6 +30,22 @@
 
 #include "filebench.h"
 
+typedef struct custom_jvm_class {
+    JavaVM *jvm;
+    JNIEnv *env;
+	jclass cls;
+    jmethodID init;
+    jmethodID create;
+    jmethodID open;
+    jmethodID delet;
+    jmethodID close;
+    jmethodID mkdir;
+    jmethodID write;
+    jmethodID read;
+    jmethodID seek;
+    jmethodID stat;
+} jvm_class;
+
 /*
  * Type of file system client plug-in desired.
  */

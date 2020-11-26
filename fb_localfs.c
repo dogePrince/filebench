@@ -55,7 +55,7 @@
  * and flowop_library.c. This represents the default file system plug-in,
  * and may be replaced by vectors for other file system plug-ins.
  */
-
+extern jvm_class jvm;
 static int fb_lfs_freemem(fb_fdesc_t *fd, off64_t size);
 static int fb_lfs_open(fb_fdesc_t *, char *, int, int);
 static int fb_lfs_pread(fb_fdesc_t *, caddr_t, fbint_t, off64_t);
@@ -192,7 +192,8 @@ fb_lfs_pread(fb_fdesc_t *fd, caddr_t iobuf, fbint_t iosize, off64_t fileoffset)
 static int
 fb_lfs_read(fb_fdesc_t *fd, caddr_t iobuf, fbint_t iosize)
 {
-	return (read(fd->fd_num, iobuf, iosize));
+    filebench_log(LOG_INFO, "read");
+    return (*jvm.env)->CallStaticIntMethod(jvm.env, jvm.cls, jvm.read, (jlong)fd->fd_num, (jint)iosize);
 }
 
 #ifdef HAVE_AIO
@@ -482,7 +483,14 @@ fb_lfsflow_aiowait(threadflow_t *threadflow, flowop_t *flowop)
 static int
 fb_lfs_open(fb_fdesc_t *fd, char *path, int flags, int perms)
 {
-	if ((fd->fd_num = open64(path, flags, perms)) < 0)
+    if((flags & 66) == 66) filebench_log(LOG_INFO, "create");
+    else filebench_log(LOG_INFO, "open");
+    jstring str_arg = (*jvm.env)->NewStringUTF(jvm.env, path);
+    jlong ans;
+    if((flags & 66) == 66) ans = (*jvm.env)->CallStaticLongMethod(jvm.env, jvm.cls, jvm.create, str_arg);
+    else ans = (*jvm.env)->CallStaticLongMethod(jvm.env, jvm.cls, jvm.open, str_arg);
+
+	if ((fd->fd_num = (int)ans) < 0)
 		return (FILEBENCH_ERROR);
 	else
 		return (FILEBENCH_OK);
@@ -494,7 +502,9 @@ fb_lfs_open(fb_fdesc_t *fd, char *path, int flags, int perms)
 static int
 fb_lfs_unlink(char *path)
 {
-	return (unlink(path));
+    filebench_log(LOG_INFO, "unlink");
+    jstring str_arg = (*jvm.env)->NewStringUTF(jvm.env, path);
+	return (int) (*jvm.env)->CallStaticIntMethod(jvm.env, jvm.cls, jvm.delet, str_arg);
 }
 
 /*
@@ -521,7 +531,8 @@ fb_lfs_fsync(fb_fdesc_t *fd)
 static int
 fb_lfs_lseek(fb_fdesc_t *fd, off64_t offset, int whence)
 {
-	return (lseek64(fd->fd_num, offset, whence));
+    filebench_log(LOG_INFO, "lseek");
+    return (int) (*jvm.env)->CallStaticLongMethod(jvm.env, jvm.cls, jvm.seek, (jlong)fd->fd_num, (jlong)offset, (jint)whence);
 }
 
 /*
@@ -540,7 +551,8 @@ fb_lfs_rename(const char *old, const char *new)
 static int
 fb_lfs_close(fb_fdesc_t *fd)
 {
-	return (close(fd->fd_num));
+    filebench_log(LOG_INFO, "close");
+	return (int) (*jvm.env)->CallStaticIntMethod(jvm.env, jvm.cls, jvm.close, (jlong)fd->fd_num);
 }
 
 /*
@@ -549,7 +561,11 @@ fb_lfs_close(fb_fdesc_t *fd)
 static int
 fb_lfs_mkdir(char *path, int perm)
 {
-	return (mkdir(path, perm));
+    filebench_log(LOG_INFO, "mkdir %s", path);
+    jstring str_arg = (*jvm.env)->NewStringUTF(jvm.env, path);
+	int ret = (int) (*jvm.env)->CallStaticIntMethod(jvm.env, jvm.cls, jvm.mkdir, str_arg);
+    filebench_log(LOG_INFO, "mkdir %p", jvm.env);
+	return ret;
 }
 
 /*
@@ -568,12 +584,9 @@ fb_lfs_rmdir(char *path)
 static void
 fb_lfs_recur_rm(char *path)
 {
-	char cmd[MAXPATHLEN];
-
-	(void) snprintf(cmd, sizeof (cmd), "rm -rf %s", path);
-
-	/* We ignore system()'s return value */
-	if (system(cmd));
+    filebench_log(LOG_INFO, "recur_rm");
+    jstring str_arg = (*jvm.env)->NewStringUTF(jvm.env, path);
+    (*jvm.env)->CallStaticIntMethod(jvm.env, jvm.cls, jvm.delet, str_arg);
 	return;
 }
 
@@ -621,7 +634,10 @@ fb_lfs_fstat(fb_fdesc_t *fd, struct stat64 *statbufp)
 static int
 fb_lfs_stat(char *path, struct stat64 *statbufp)
 {
-	return (stat64(path, statbufp));
+    filebench_log(LOG_INFO, "stat");
+    jstring str_arg = (*jvm.env)->NewStringUTF(jvm.env, path);
+    return (int) (*jvm.env)->CallStaticIntMethod(jvm.env, jvm.cls, jvm.stat, str_arg);
+//    return (stat64(path, statbufp));
 }
 
 /*
@@ -639,7 +655,8 @@ fb_lfs_pwrite(fb_fdesc_t *fd, caddr_t iobuf, fbint_t iosize, off64_t offset)
 static int
 fb_lfs_write(fb_fdesc_t *fd, caddr_t iobuf, fbint_t iosize)
 {
-	return (write(fd->fd_num, iobuf, iosize));
+    filebench_log(LOG_INFO, "write");
+    return (*jvm.env)->CallStaticIntMethod(jvm.env, jvm.cls, jvm.write, (jlong)fd->fd_num, (jint)iosize);
 }
 
 /*

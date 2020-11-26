@@ -38,6 +38,8 @@
 #include <sys/resource.h>
 #include <pthread.h>
 #include <signal.h>
+#include <jni.h>
+#include <stdio.h>
 #ifndef HAVE_SYSV_SEM
 #include <semaphore.h>
 #endif

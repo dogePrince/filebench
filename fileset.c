@@ -40,7 +40,7 @@
 #include "fsplug.h"
 
 static int filecreate_done;
-
+jvm_class jvm;
 /*
  * File sets, of type fileset_t, are entities which contain
  * information about collections of files and subdirectories in Filebench.
@@ -1747,6 +1747,43 @@ fileset_checkraw(fileset_t *fileset)
 	return 0;
 }
 
+
+char* get_classpath(){
+    static char str[10000] = "-Djava.class.path=";
+    strcat(str, getenv("CLASSPATH"));
+    int len = strlen(str);
+    for(int i = 0; i < len; i++) if(str[i] == ' ') str[i] = ':';
+    filebench_log(LOG_INFO, "%s", str);
+    return str;
+}
+JNIEnv *create_vm(JavaVM **jvm, JNIEnv **env) {
+    JavaVMInitArgs args;
+    JavaVMOption options[1];
+    args.version = JNI_VERSION_1_8;
+    args.nOptions = 1;
+    options[0].optionString = get_classpath();
+    args.options = options;
+    args.ignoreUnrecognized = JNI_FALSE;
+    return JNI_CreateJavaVM(jvm, (void **) env, &args);
+}
+void init_vm(jvm_class* jvm) {
+    create_vm(&jvm->jvm, &jvm->env);
+    char *class_name = "team/ecnu522/lenovo_fs/benchmark/FileBenchFS";
+    jvm->cls = (*jvm->env)->FindClass(jvm->env, class_name);
+
+    jvm->init = (*jvm->env)->GetStaticMethodID(jvm->env, jvm->cls, "init", "()V");
+    (*jvm->env)->CallStaticVoidMethod(jvm->env, jvm->cls, jvm->init);
+    jvm->create = (*jvm->env)->GetStaticMethodID(jvm->env, jvm->cls, "create", "(Ljava/lang/String;)J");
+    jvm->open = (*jvm->env)->GetStaticMethodID(jvm->env, jvm->cls, "open", "(Ljava/lang/String;)J");
+    jvm->delet = (*jvm->env)->GetStaticMethodID(jvm->env, jvm->cls, "delete", "(Ljava/lang/String;)I");
+    jvm->close = (*jvm->env)->GetStaticMethodID(jvm->env, jvm->cls, "close", "(J)I");
+    jvm->mkdir = (*jvm->env)->GetStaticMethodID(jvm->env, jvm->cls, "mkdirs", "(Ljava/lang/String;)I");
+    jvm->write = (*jvm->env)->GetStaticMethodID(jvm->env, jvm->cls, "write", "(JI)I");
+    jvm->read = (*jvm->env)->GetStaticMethodID(jvm->env, jvm->cls, "read", "(JI)I");
+    jvm->seek = (*jvm->env)->GetStaticMethodID(jvm->env, jvm->cls, "seek", "(JJ)L");
+    jvm->stat = (*jvm->env)->GetStaticMethodID(jvm->env, jvm->cls, "getFileStatus", "(Ljava/lang/String;)I");
+    filebench_log(LOG_INFO, "init jvm finished");
+}
 /*
  * Calls fileset_populate() and fileset_create() for all filesets on the
  * fileset list. Returns when any of fileset_populate() or fileset_create()
@@ -1774,6 +1811,15 @@ fileset_createsets()
 							ipc_condattr());
 
 	filebench_log(LOG_INFO, "Populating and pre-allocating filesets");
+    filebench_log(LOG_INFO, "[prepare] build RDMA connection for pid %d", getpid());
+
+    init_vm(&jvm);
+
+//    mid = (*jvm.env)->GetStaticMethodID(jvm.env, jvm.cls, "create", "(Ljava/lang/String;)J");
+//    jstring str_arg = (*jvm.env)->NewStringUTF(jvm.env, "file2");
+//    jlong ans = (*jvm.env)->CallStaticLongMethod(jvm.env, jvm.cls, mid, str_arg);
+//    filebench_log(LOG_INFO, "[prepare] %ld", (long) ans);
+
 
 	list = filebench_shm->shm_filesetlist;
 	while (list) {
@@ -1827,6 +1873,8 @@ fileset_createsets()
 		    &filebench_shm->shm_fsparalloc_lock);
 	(void) pthread_mutex_unlock(&filebench_shm->shm_fsparalloc_lock);
 
+    (*jvm.jvm)->DestroyJavaVM(jvm.jvm);
+    filebench_log(LOG_INFO, "[prepare] destroy RDMA connection for pid %d", getpid());
 	filebench_log(LOG_INFO,
 	    "Population and pre-allocation of filesets completed");
 

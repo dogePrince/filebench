@@ -2548,7 +2548,7 @@ parser_run(cmd_t *cmd)
 
 	parser_fileset_create(cmd);
 
-	filebench_log(LOG_INFO, "[parser_run] Waiting for starting code. Current pid is %d", getpid());
+	filebench_log(LOG_INFO, "[barrier] Waiting for starting code. Current pid is %d", getpid());
 	kill(getpid(), SIGSTOP);
 	proc_create();
 
@@ -2556,6 +2556,7 @@ parser_run(cmd_t *cmd)
 	if (filebench_shm->shm_f_abort)
 		return;
 
+    filebench_log(LOG_INFO, "parser_run %d", getpid());
 	filebench_log(LOG_INFO, "Running...");
 	stats_clear();
 
@@ -2599,7 +2600,7 @@ parser_psrun(cmd_t *cmd)
 
 	parser_fileset_create(cmd);
 
-	filebench_log(LOG_INFO, "[parser_psrun] Waiting for starting code");
+	filebench_log(LOG_INFO, "[barrier] Waiting for starting code. Current pid is %d", getpid());
 	kill(getpid(), SIGSTOP);
 	proc_create();
 
@@ -2607,6 +2608,7 @@ parser_psrun(cmd_t *cmd)
 	if (filebench_shm->shm_f_abort)
 		return;
 
+    filebench_log(LOG_INFO, "parser_psrun %d", getpid());
 	filebench_log(LOG_INFO, "Running...");
 	stats_clear();
 
@@ -2662,7 +2664,7 @@ parser_run_variable(cmd_t *cmd)
 
 	parser_fileset_create(cmd);
 
-	filebench_log(LOG_INFO, "[parser_run_variable] Waiting for starting code");
+	filebench_log(LOG_INFO, "[barrier] Waiting for starting code. Current pid is %d", getpid());
 	kill(getpid(), SIGSTOP);
 	proc_create();
 
@@ -2670,6 +2672,7 @@ parser_run_variable(cmd_t *cmd)
 	if (filebench_shm->shm_f_abort)
 		return;
 
+    filebench_log(LOG_INFO, "parser_run_variable %d", getpid());
 	filebench_log(LOG_INFO, "Running...");
 	stats_clear();
 
@@ -2775,6 +2778,7 @@ parser_sleep_variable(cmd_t *cmd)
 	if (filebench_shm->shm_f_abort)
 		return;
 
+    filebench_log(LOG_INFO, "parser_sleep_variable %d", getpid());
 	filebench_log(LOG_INFO, "Running...");
 
 	timeslept = parser_pause(sleeptime);
