@@ -26,7 +26,7 @@
 
 set $dir={^ workspace ^}
 set $nfiles={^ nfiles ^}
-set $dirwidth=200
+set $dirwidth=20
 set $filesize=16k
 set $nthreads={^ nthreads ^}
 set $meaniosize=16k
