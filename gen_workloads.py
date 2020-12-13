@@ -2,12 +2,13 @@ from jinja2 import Template
 import os
 import copy
 import socket
+import sys
 
 host_name = socket.gethostname()
 ssd_path = f'/root/file_tmp_{host_name}'
 pm_path = f'/pmfs/file_tmp_{host_name}'
 
-nt = 1
+nt = int(sys.argv[1])
 
 common_config = {
     # 'workspace': {'ssd': ssd_path, 'pm': pm_path},
