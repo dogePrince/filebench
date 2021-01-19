@@ -25,7 +25,7 @@
 
 set $dir={^ workspace ^}
 set $nfiles={^ nfiles ^}
-set $meandirwidth=20
+set $meandirwidth=200
 set $filesize=cvar(type=cvar-gamma,parameters=mean:16384;gamma:1.5)
 set $nthreads={^ nthreads ^}
 set $iosize=1m
