@@ -110,7 +110,7 @@ def filebench_nfs(hosts, filebench_dir):
     os.system(f"mkdir {result_path}")
 
     for workload, condition in args_generator():
-        shorten_name = ''
+        shorten_name = workload
         for v in condition['friendly'].values():
             shorten_name += '_' + v
         path1 = os.path.join(result_path, shorten_name)
