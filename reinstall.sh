@@ -4,7 +4,7 @@ rm parser_gram.c parser_gram.h parser_gram.o
 
 libtoolize
 aclocal
-autoheader -I $JAVA_HOME/include/ -I $JAVA_HOME/include/linux/
+autoheader
 automake --add-missing
 autoconf
 ./configure
