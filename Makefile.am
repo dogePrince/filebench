@@ -27,6 +27,5 @@ AM_YFLAGS = -d
 if GCC_USED
 AM_CFLAGS = -Wall -Wno-unknown-pragmas
 endif
-LIBS = -ldl -lpthread -lm -lrt -ljvm
 
 DEFS = -D_REENTRANT -DYYDEBUG -DYY_NO_INPUT -DFBLIBDIR=\"$(libdir)\" -D_LARGEFILE64_SOURCE -D_GNU_SOURCE
