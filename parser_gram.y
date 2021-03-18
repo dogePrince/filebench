@@ -54,6 +54,9 @@
 #include "aslr.h"
 #include "multi_client_sync.h"
 
+#include <time.h>
+#include <sys/time.h>
+
 /* yacc and lex externals */
 extern FILE *yyin;
 extern int yydebug;
@@ -2531,6 +2534,24 @@ parser_pause(int ptime)
 #define TIMED_RUNTIME_DEFAULT 60 /* In seconds */
 #define PERIOD_DEFAULT 10 /* In seconds */
 
+struct timeval now;
+
+void wait_to_even_secend() {
+    long start, end;
+    gettimeofday(&now, NULL);
+    start = now.tv_sec;
+    if (start & 1) {
+        end = start + 3;
+    }
+    else {
+        end = start + 2;
+    }
+
+    while(now.tv_sec < end) {
+        gettimeofday(&now, NULL);
+    }
+}
+
 /*
  * Do a file bench run. Calls routines to create file sets, files, and
  * processes. It resets the statistics counters, then sleeps for the runtime
@@ -2550,6 +2571,7 @@ parser_run(cmd_t *cmd)
 
 	filebench_log(LOG_INFO, "[parser_run] Waiting for starting code. Current pid is %d", getpid());
 	kill(getpid(), SIGSTOP);
+	wait_to_even_secend();
 	proc_create();
 
 	/* check for startup errors */
@@ -2601,6 +2623,8 @@ parser_psrun(cmd_t *cmd)
 
 	filebench_log(LOG_INFO, "[parser_psrun] Waiting for starting code");
 	kill(getpid(), SIGSTOP);
+	wait_to_even_secend();
+
 	proc_create();
 
 	/* check for startup errors */
@@ -2664,6 +2688,8 @@ parser_run_variable(cmd_t *cmd)
 
 	filebench_log(LOG_INFO, "[parser_run_variable] Waiting for starting code");
 	kill(getpid(), SIGSTOP);
+	wait_to_even_secend();
+
 	proc_create();
 
 	/* check for startup errors */

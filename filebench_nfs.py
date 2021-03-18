@@ -1,8 +1,11 @@
 import os
 import sys
 import copy
+import re
 import _thread
 import time
+import shutil
+from pathlib import Path
 from subprocess import Popen, PIPE
 
 
@@ -11,7 +14,7 @@ host_num = [1, 4, 8]
 common_config = {
     'workspace': {'pm': '/pmfs'},
     'nthreads': {'1': 1},
-    'sync': {'sync': ',dsync', 'async': ''}
+    'sync': {'sync': ',dsync'}
 }
 
 files_number_per_thread = {
@@ -92,10 +95,9 @@ def check(hosts):
             count += 1
             result = result[index+1:]
             index = result.find('T')
-        print("prepared: " + str(count))
+        print(f"prepared: {count} of {len(hosts)}")
         time.sleep(1)
-    time.sleep(10)
-    os.system(f"parallel-ssh {get_hosts(hosts)} 'pkill -CONT filebench'")
+    os.system(f"parallel-ssh {get_hosts(hosts)} -P 'pkill -CONT filebench;date +%s.%N'")
 
 
 def run(hosts, path_out, path_err, cmd):
@@ -107,6 +109,8 @@ def run(hosts, path_out, path_err, cmd):
 
 def filebench_nfs(hosts, filebench_dir):
     run_py = os.path.join(filebench_dir, 'run.py')
+    if os.path.exists(result_path):
+        shutil.rmtree(result_path)
     os.system(f"mkdir {result_path}")
 
     for workload, condition in args_generator():
@@ -130,12 +134,60 @@ def filebench_nfs(hosts, filebench_dir):
             run(hosts[:num], path_out, path_err, cmd)
 
 
+def disbale_randomize_va_space():
+    print('disbale_randomize_va_space')
+    cmd = 'echo 0 > /proc/sys/kernel/randomize_va_space'
+    client_instr = f"parallel-ssh -h hosts -t 0 '{cmd}'"
+    os.system(client_instr)
+
+
+def parse_result(results_path):
+    data_regex = re.compile(r'^[\d\.]+:\s+IO\s+Summary:\s+(\d+)\s+ops\s+([\d\.]+)\s+ops/s\s+(\d+)/(\d+)\s+rd/wr\s+([\d\.]+)mb/s\s([\d\.]+)ms/op')
+    duration_regex = re.compile(r'^[\d\.]+:\s+Run took (\d+) seconds...')
+    results_dir = Path(results_path)
+    output_file = Path('test_results.csv')
+
+    with output_file.open('w') as output:
+        output.write(',ops,ops/s,rd,wr,mb/s,ms/op\n')
+        for workload in results_dir.iterdir():
+            name = workload.name
+            for num in host_num:
+                outs = workload.joinpath(f'{num}client').joinpath('out')
+                ops, ops_s, rd, wr, mb_s = 0, 0, 0, 0, 0
+                duration = 0
+                for file in outs.iterdir():
+                    with file.open() as f:
+                        line = f.readline()
+                        while line:
+                            duration_matcher = duration_regex.match(line)
+                            if duration_matcher:
+                                duration = int(duration_matcher.groups()[0])
+                            data_matcher = data_regex.match(line)
+                            if data_matcher:
+                                groups = data_matcher.groups()
+                                ops += float(groups[0])
+                                ops_s += float(groups[1])
+                                rd += float(groups[2])
+                                wr += float(groups[3])
+                                mb_s += float(groups[4])
+                                break
+                            line = f.readline()
+                        else:
+                            raise Exception(f"no result in file {file.name}")
+
+                output.write(f'{name}_{num},{ops},{ops_s},{rd},{wr},{mb_s},{duration/1000/ops}\n')
+
+
 if __name__ == '__main__':
     args = sys.argv
-    result_path = args[1]
-    client_filebench_dir = args[2]
+    result_path = 'result_path'
+    client_filebench_dir = args[1]
+
+    disbale_randomize_va_space()
 
     with open("hosts", "r") as f:
         hosts = [x.strip() for x in f.readlines()]
     filebench_nfs(hosts, client_filebench_dir)
+
+    parse_result(result_path)
 
